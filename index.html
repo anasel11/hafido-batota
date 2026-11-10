@@ -164,6 +164,22 @@ main{max-width:1200px;margin:auto;padding:0 clamp(1rem,4vw,2rem) 4rem}
 .tag b{display:block;font-weight:600;line-height:1.55;overflow-wrap:anywhere}
 .tsec{font-family:var(--display);font-size:1.9rem;line-height:1.3;margin-top:1.6rem;color:var(--lapis)}
 .video{aspect-ratio:16/9;width:100%;border:0;border-radius:20px;box-shadow:10px 10px 0 var(--rose)}
+/* Carte معلومات dépliable */
+.minfo{--c:var(--lapis);--on:var(--sable);width:100%;margin-top:1.4rem;background:#fff;border:2px solid var(--encre);border-radius:16px;box-shadow:5px 5px 0 var(--c);overflow:hidden;transition:box-shadow .25s}
+.minfo:hover{box-shadow:8px 8px 0 var(--c)}
+.mh{width:100%;display:flex;align-items:center;gap:.9rem;padding:.75rem 1rem;background:none;border:0;text-align:start;color:inherit;cursor:pointer}
+.mh .bd{flex:none;width:50px;height:50px;display:grid;place-items:center;background:var(--c);color:var(--on);clip-path:var(--oct);font-size:1.45rem}
+.mh b{flex:1;font-family:var(--display);font-weight:400;font-size:1.6rem;line-height:1.3}
+.plus{flex:none;width:40px;height:40px;border-radius:50%;border:2px solid var(--encre);display:grid;place-items:center;font-size:1.3rem;transition:rotate .35s,background .25s,color .25s,border-color .25s}
+.plus .ic{stroke-width:3.4}
+.minfo.open .plus{rotate:45deg;background:var(--c);color:var(--on);border-color:var(--c)}
+.mh:hover .plus{background:var(--c);color:var(--on);border-color:var(--c)}
+.mb{position:relative;overflow:hidden;transition:height .5s cubic-bezier(.2,.8,.2,1)}
+.mb .mt{padding:0 1.2rem 1.2rem;font-size:1.1rem;line-height:1.9;white-space:pre-line}
+.mb::after{content:"";position:absolute;inset-inline:0;bottom:0;height:46px;background:linear-gradient(transparent,#fff);pointer-events:none;transition:opacity .3s}
+.minfo.open .mb::after,.minfo.short .mb::after{opacity:0}
+.minfo.short .plus{display:none}
+.minfo.short .mh{cursor:default}
 .empty{padding:2rem;text-align:center;border:3px dashed var(--lapis);border-radius:18px;margin-top:1rem}
 /* Admin */
 .panel{background:#fff;border-radius:18px;padding:1.3rem;margin-top:1.2rem;box-shadow:0 5px 0 var(--lapis)}
@@ -565,9 +581,23 @@ async function viewPlace(id){
     const inner=`<span class="bd">${tic(t.k)}</span><span><small>${t.l}</small><b${t.k==='phone'?' dir="ltr"':''}>${esc(val)}</b></span>`;
     return `<div class="tg rv" style="--rd:${i*.07}s">${t.k==='phone'?`<a class="tag" data-tilt ${st} href="tel:${esc(val.replace(/\s/g,''))}">${inner}</a>`:`<button class="tag" data-tilt data-copy="${esc(val)}" ${st}>${inner}</button>`}</div>`}).join('');
   app.innerHTML=`<section class="ph full">${p.cover?`<div class="bg" style="background-image:url('${p.cover}')"></div>`:''}${ic(c.icon)}<h1>${words(p.name)}</h1><a href="#/c/${c.id}" class="btn" data-mag style="margin-top:1.2rem">${esc(c.name||'رجوع')}</a></section>
-  <div class="cols"><div>${p.desc?`<p class="desc rv">${esc(p.desc)}</p>`:''}${tagsHtml?`<h2 class="tsec rv">معلومات الزيارة</h2><div class="tags">${tagsHtml}</div>`:''}</div><div class="rv" style="--rd:.15s"><div class="mapbox"><div id="map" role="img" aria-label="الموقع على الخريطة"></div><a class="mapgo" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg>اتجاه الموقع</a></div><div class="gallery" id="gal"></div></div></div>
+  <div class="cols"><div>${tagsHtml?`<h2 class="tsec rv">معلومات الزيارة</h2><div class="tags">${tagsHtml}</div>`:''}${p.desc?`<div class="minfo rv" id="mi"><button class="mh" type="button" aria-expanded="false"><span class="bd">${tic('specialty')}</span><b>معلومات</b><span class="plus"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button><div class="mb"><div class="mt">${esc(p.desc)}</div></div></div>`:''}</div><div class="rv" style="--rd:.15s"><div class="mapbox"><div id="map" role="img" aria-label="الموقع على الخريطة"></div><a class="mapgo" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg>اتجاه الموقع</a></div><div class="gallery" id="gal"></div></div></div>
   ${v?`<h2 class="sec rv">${ic('monument')} شاهد</h2><div class="rv"><iframe class="video" src="https://www.youtube-nocookie.com/embed/${v}" title="${esc(p.name)}" allowfullscreen loading="lazy"></iframe></div>`:''}`;
   app.querySelectorAll('[data-copy]').forEach(t=>t.onclick=()=>{navigator.clipboard?.writeText(t.dataset.copy);toast('تم النسخ')});
+  const mi=$('mi');
+  if(mi){
+    const mb=mi.querySelector('.mb'), mt=mb.firstElementChild, btn=mi.querySelector('.mh'), C=84; let open=false;
+    const collapsed=()=>{ if(mt.offsetHeight<=C+10){mi.classList.add('short');mb.style.height='auto';return true} mi.classList.remove('short');return false };
+    requestAnimationFrame(()=>{ if(!collapsed()) mb.style.height=C+'px' });
+    btn.onclick=()=>{
+      if(mi.classList.contains('short'))return;
+      open=!open;
+      mi.classList.toggle('open',open);
+      btn.setAttribute('aria-expanded',open);
+      mb.style.height=(open?mt.offsetHeight:C)+'px';
+    };
+    new ResizeObserver(()=>{ if(open) mb.style.height=mt.offsetHeight+'px' }).observe(mt);
+  }
   map=L.map('map',{scrollWheelZoom:false}).setView([p.lat,p.lng],13);
   tiles(map);
   map.on('click',()=>map.scrollWheelZoom.enable());
